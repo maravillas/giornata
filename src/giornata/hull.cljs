@@ -60,5 +60,6 @@
                                   :points sorted})
         lower (iterate step-hull {:op :start
                                   :points (reverse sorted)})]
-    [(take-while #(not (= (:op %) :fin)) upper)
-     (take-while #(not (= (:op %) :fin)) lower)]))
+    {:points points
+     :upper (take-while #(not (= (:op %) :fin)) upper)
+     :lower (take-while #(not (= (:op %) :fin)) lower)}))
