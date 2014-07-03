@@ -30,22 +30,29 @@
 ;;                     (subvec hull (dec (count hull)) (count hull))))]
 
 (defn step-hull
-  [[points hull]]
+  [{:keys [points hull]}]
   (cond (and (> (count hull) 2)
              (not (apply right-turn? (take-last 3 hull))))
-        [points (concat (drop-last 2 hull)
-                        [(last hull)])]
+        {:op :drop
+         :points points
+         :hull (concat (drop-last 2 hull)
+                        [(last hull)])
+         :dropped (nth hull (- (count hull) 2))}
 
         (empty? points)
-        [nil hull]
+        {:op :fin
+         :points nil
+         :hull hull}
         
         :else
-        [(rest points) (conj (vec hull) (first points))]))
+        {:op :add
+         :points (rest points)
+         :hull (conj (vec hull) (first points))}))
 
 (defn convex-hull
   [points]
   (let [sorted (point-sort points)
-        upper (iterate step-hull [sorted []])
-        lower (iterate step-hull [(reverse sorted) []])]
-    [(take-while #(not (nil? (first %))) upper)
-     (take-while #(not (nil? (first %))) lower)]))
+        upper (iterate step-hull {:points sorted :op :start})
+        lower (iterate step-hull {:points (reverse sorted) :op :start})]
+    [(take-while #(not (= (:op %) :fin)) upper)
+     (take-while #(not (= (:op %) :fin)) lower)]))
