@@ -8,13 +8,16 @@
                                   stroke stroke-style fill fill-rect fill-style 
                                   rotate translate]]
             [giornata.hull :refer [convex-hull]]
-            [giornata.gen :refer [gen-points]]))
+            [giornata.gen :refer [gen-points]]
+            [cljs.core.async :as a :refer [chan <! >! timeout]])
+  (:require-macros [cljs.core.async.macros :refer [go alt!]]))
 
 (enable-console-print!)
 
 (def width (first (canvas-size)))
 (def height (second (canvas-size)))
 (def padding 50)
+(def delay 500)
 
 (defn points
   [w h]
@@ -25,9 +28,18 @@
 (defn draw-points
   [ctx points]
   (doseq [[x y] points]
-    (circle ctx {:x x :y y :r 3})
-    (stroke ctx))
+    (when (and x y)
+      (circle ctx {:x x :y y :r 4})
+      (stroke ctx)))
   ctx)
+
+(defn draw-hull
+  [ctx points]
+  (begin-path ctx)
+  (doseq [[[ax ay] [bx by]] (partition 2 1 points)]
+    (move-to ctx ax ay)
+    (line-to ctx bx by))
+  (close-path ctx))
 
 (defn render!
   [ctx {:keys [points op hull dropped all-dropped]}]
@@ -43,19 +55,26 @@
       (stroke-style :transparent)
       (draw-points hull)
       
-      (fill-style :#EB6841)
+      (fill-style :#F9BF76)
       (stroke-style :transparent)
       (draw-points all-dropped)
       
-      (fill-style :#00CC33)
+      (fill-style :#EB6841)
       (stroke-style :transparent)
-      (draw-points [dropped])))
+      (draw-points [dropped])
+
+      (stroke-style :#00A0B0)
+      (draw-hull hull)
+      (stroke)))
 
 (defn animate [ctx steps]
-  (doseq [step (first steps)]
-    (animation-frame identity)
-    (render! ctx step)))
+  (go
+   (doseq [step (first steps)]
+     (println step)
+     (animation-frame identity)
+     (render! ctx step)
+     (<! (timeout delay)))))
 
 (show canvas)
-;;(animate ctx (convex-hull (points width height)))
-(animate ctx (convex-hull [[20 120] [30 70] [60 180] [120 60] [160 140]]))
+(animate ctx (convex-hull (points width height)))
+;;(animate ctx (convex-hull [[20 120] [30 70] [60 180] [120 60] [160 140]]))
